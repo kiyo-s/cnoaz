@@ -8,6 +8,9 @@ param env string
 @description('Specify Azure region.')
 param region string = 'japaneast'
 
+@description('Specify IP Address or CIDR list')
+param allow_ip_list array
+
 // variables
 var resource_name_prefix = '${toLower(service)}-${toLower(env)}'
 
@@ -24,6 +27,7 @@ resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   tags: {
     Service: service
     Env: env
+    Usage: 'terraform_remote_state'
   }
   managedBy: 'string'
   properties: {}
@@ -40,5 +44,6 @@ module tfstate_storage 'modules/storage_account.bicep' = {
     service: service
     env: env
     region: region
+    allow_ip_list: allow_ip_list
   }
 }
