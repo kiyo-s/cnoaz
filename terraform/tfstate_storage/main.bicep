@@ -53,17 +53,6 @@ resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   properties: {}
 }
 
-module tfstate_rg_role_assignment 'modules/rgRoleAssignment.bicep' = {
-  scope: resourceGroup(tfstate_rg.name)
-  name: 'tfstate-rg-role-assignment-${deploymentSuffix}'
-
-  params: {
-    principalId: principalId
-    principalType: principalType
-    roleDefinitionId: roleDefinitionId
-  }
-}
-
 // storage for terraform remote state
 module tfstate_storage 'modules/storageAccount.bicep' = {
   scope: resourceGroup(tfstate_rg.name)
@@ -75,5 +64,8 @@ module tfstate_storage 'modules/storageAccount.bicep' = {
     region: region
     tagUsage: tagUsage
     allowIplist: allowIplist
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: roleDefinitionId
   }
 }

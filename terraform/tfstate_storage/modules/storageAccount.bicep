@@ -14,11 +14,22 @@ param tagUsage string
 @description('Specify IP Address or CIDR list.')
 param allowIplist array
 
+@description('Specify Principal ID to whom resource group role will be assignment.')
+param principalId string
+
+@description('Specify Principal Type of Principal ID.')
+param principalType string
+
+@description('Specify the RBAC role definition ID to be assigned to specified principal. Default value is `Storage Blob Data Contributor`.')
+param roleDefinitionId string
+
 // variables
 var resourceNamePrefix = '${toLower(service)}${toLower(env)}'
 var networkAclsIpRules = [for allowIp in allowIplist: {
   value: allowIp
 }]
+
+var roleAssignmentName = guid(resourceGroup().id, principalId, roleDefinitionId)
 
 // resources
 resource tfstateStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
@@ -89,5 +100,20 @@ resource tfstateBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/co
       Usage: tagUsage
     }
     publicAccess: 'None'
+  }
+}
+
+resource roleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: subscription()
+  name: roleDefinitionId
+}
+
+resource tfstate_rg_role_assignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: roleAssignmentName
+  scope: resourceGroup()
+  properties: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: roleDefinition.id
   }
 }
