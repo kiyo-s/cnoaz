@@ -49,7 +49,7 @@ resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
     Env: env
     Usage: tagUsage
   }
-  managedBy: 'string'
+  managedBy: 'bicep'
   properties: {}
 }
 
