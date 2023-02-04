@@ -11,6 +11,12 @@
         "region": {
             "value": "japaneast"
         },
+        "principalId": {
+            "value": ""
+        },
+        "principalType": {
+            "value": "User"
+        },
         "allow_ip_list": {
             "value": [
                 "8.8.8.8",

@@ -1,4 +1,5 @@
-// parameters
+/* parameters */
+// common parameters
 @description('Specify the service name.')
 param service string
 
@@ -8,21 +9,39 @@ param env string
 @description('Specify Azure region.')
 param region string = 'japaneast'
 
+@description('Specify suffix the deployed name of the module. Default value is UTC time at the time the deployment is executed.')
+param deploymentSuffix string = utcNow()
+
+// resource group parameters
+@description('Specify Principal ID to whom resource group role will be assignment.')
+param principalId string
+
+@description('Specify Principal Type of Principal ID.')
+@allowed([
+  'Device'
+  'ForeignGroup'
+  'Group'
+  'ServicePrincipal'
+  'User'
+])
+param principalType string
+
+@description('Specify the RBAC role definition ID to be assigned to specified principal. Default value is `Storage Blob Data Contributor`.')
+param roleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
+// storage parameters
 @description('Specify IP Address or CIDR list')
-param allow_ip_list array
+param allowIplist array
 
-// variables
-var resource_name_prefix = '${toLower(service)}-${toLower(env)}'
+/* variables */
+var resourceNamePrefix = '${toLower(service)}-${toLower(env)}'
 
-// Scope definition
+/* resource definitions */
 targetScope = 'subscription'
 
-// resource definition
-/*
-  resource group
-*/
+//  resource group
 resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: '${resource_name_prefix}-tfstate'
+  name: '${resourceNamePrefix}-tfstate'
   location: region
   tags: {
     Service: service
@@ -33,17 +52,26 @@ resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   properties: {}
 }
 
-/*
-  blob storage for terraform state
-*/
+module tfstate_rg_role_assignment 'modules/rg_role_assignment.bicep' = {
+  scope: resourceGroup(tfstate_rg.name)
+  name: 'tfstate_rg_role_assignment-${deploymentSuffix}'
+
+  params: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: roleDefinitionId
+  }
+}
+
+// storage for terraform remote state
 module tfstate_storage 'modules/storage_account.bicep' = {
   scope: resourceGroup(tfstate_rg.name)
-  name: 'tfstate_storage'
+  name: 'tfstate-storage-${deploymentSuffix}'
 
   params: {
     service: service
     env: env
     region: region
-    allow_ip_list: allow_ip_list
+    allow_ip_list: allowIplist
   }
 }
