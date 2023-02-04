@@ -8,23 +8,26 @@ param env string
 @description('Specify Azure region.')
 param region string = 'japaneast'
 
+@description('')
+param tagUsage string
+
 @description('Specify IP Address or CIDR list.')
-param allow_ip_list array
+param allowIplist array
 
 // variables
-var resource_name_prefix = '${toLower(service)}${toLower(env)}'
-var network_acls_ip_rules = [for allow_ip in allow_ip_list: {
-  value: allow_ip
+var resourceNamePrefix = '${toLower(service)}${toLower(env)}'
+var networkAclsIpRules = [for allowIp in allowIplist: {
+  value: allowIp
 }]
 
 // resources
-resource tfstate_storage_account 'Microsoft.Storage/storageAccounts@2022-05-01' = {
-  name: '${resource_name_prefix}tfstate'
+resource tfstateStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
+  name: '${resourceNamePrefix}tfstate'
   location: region
   tags: {
     Service: service
     Env: env
-    Usage: 'terraform_remote_state'
+    Usage: tagUsage
   }
   sku: {
     name: 'Standard_GRS'
@@ -52,36 +55,38 @@ resource tfstate_storage_account 'Microsoft.Storage/storageAccounts@2022-05-01' 
       }
     }
     */
+
     /// traffic encryption
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
+
     /// network security
     allowBlobPublicAccess: true
     publicNetworkAccess: 'Enabled'
     networkAcls: {
       bypass: 'None'
       defaultAction: 'Deny'
-      ipRules: network_acls_ip_rules
+      ipRules: networkAclsIpRules
     }
   }
 }
 
-resource tfstate_blob 'Microsoft.Storage/storageAccounts/blobServices@2022-05-01' = {
+resource tfstateBlob 'Microsoft.Storage/storageAccounts/blobServices@2022-05-01' = {
   name: 'default'
-  parent: tfstate_storage_account
+  parent: tfstateStorageAccount
   properties: {
     isVersioningEnabled: true
   }
 }
 
-resource tfstate_blob_container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+resource tfstateBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
   name: 'tfstate'
-  parent: tfstate_blob
+  parent: tfstateBlob
   properties: {
     metadata: {
       Service: service
       Env: env
-      Usage: 'terraform_remote_state'
+      Usage: tagUsage
     }
     publicAccess: 'None'
   }

@@ -35,6 +35,7 @@ param allowIplist array
 
 /* variables */
 var resourceNamePrefix = '${toLower(service)}-${toLower(env)}'
+var tagUsage = 'terraform_remote_state'
 
 /* resource definitions */
 targetScope = 'subscription'
@@ -46,15 +47,15 @@ resource tfstate_rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   tags: {
     Service: service
     Env: env
-    Usage: 'terraform_remote_state'
+    Usage: tagUsage
   }
   managedBy: 'string'
   properties: {}
 }
 
-module tfstate_rg_role_assignment 'modules/rg_role_assignment.bicep' = {
+module tfstate_rg_role_assignment 'modules/rgRoleAssignment.bicep' = {
   scope: resourceGroup(tfstate_rg.name)
-  name: 'tfstate_rg_role_assignment-${deploymentSuffix}'
+  name: 'tfstate-rg-role-assignment-${deploymentSuffix}'
 
   params: {
     principalId: principalId
@@ -64,7 +65,7 @@ module tfstate_rg_role_assignment 'modules/rg_role_assignment.bicep' = {
 }
 
 // storage for terraform remote state
-module tfstate_storage 'modules/storage_account.bicep' = {
+module tfstate_storage 'modules/storageAccount.bicep' = {
   scope: resourceGroup(tfstate_rg.name)
   name: 'tfstate-storage-${deploymentSuffix}'
 
@@ -72,6 +73,7 @@ module tfstate_storage 'modules/storage_account.bicep' = {
     service: service
     env: env
     region: region
-    allow_ip_list: allowIplist
+    tagUsage: tagUsage
+    allowIplist: allowIplist
   }
 }
