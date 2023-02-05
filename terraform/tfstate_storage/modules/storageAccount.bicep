@@ -8,7 +8,7 @@ param env string
 @description('Specify Azure region.')
 param region string = 'japaneast'
 
-@description('')
+@description('Specify the value of `Usage` tag.')
 param tagUsage string
 
 @description('Specify IP Address or CIDR list.')
@@ -22,6 +22,15 @@ param principalType string
 
 @description('Specify the RBAC role definition ID to be assigned to specified principal. Default value is `Storage Blob Data Contributor`.')
 param roleDefinitionId string
+
+@description('Specify User Assigned Managed Identity Principal ID to be assigned to the Storage Account. Correct value is GUID format.')
+param managedIdentityPrincipalId string
+
+@description('Specify Azure Key Vault URI for SSE.')
+param keyVaultUri string
+
+@description('Specify Azure Key Vault Key name for SSE.')
+param keyVaultKeyName string
 
 // variables
 var resourceNamePrefix = '${toLower(service)}${toLower(env)}'
@@ -45,7 +54,12 @@ resource tfstateStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = 
   }
   kind: 'StorageV2'
   identity: {
-    type: 'None'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityPrincipalId}': {}
+      // reference
+      // https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/logic-apps/create-managed-service-identity.md#create-user-assigned-identity-in-an-arm-template
+    }
   }
   properties: {
     accessTier: 'Hot'
@@ -56,16 +70,17 @@ resource tfstateStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = 
     defaultToOAuthAuthentication: true
 
     /// storage encryption
-    /*
     encryption: {
+      identity: {
+        userAssignedIdentity: managedIdentityPrincipalId
+      }
       keySource: 'Microsoft.Keyvault'
       keyvaultproperties: {
-        keyname: ''
-        keyvaulturi: ''
-        keyversion: ''
+        keyvaulturi: keyVaultUri
+        keyname: keyVaultKeyName
       }
+      requireInfrastructureEncryption: true
     }
-    */
 
     /// traffic encryption
     supportsHttpsTrafficOnly: true
@@ -103,12 +118,13 @@ resource tfstateBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/co
   }
 }
 
+// role assignment
 resource roleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
   name: roleDefinitionId
 }
 
-resource tfstate_rg_role_assignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource tfstateRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: roleAssignmentName
   scope: resourceGroup()
   properties: {
