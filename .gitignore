@@ -30,3 +30,5 @@ override.tf.json
 
 # file start with `.`
 **/.*/*
+
+.DS_Store
